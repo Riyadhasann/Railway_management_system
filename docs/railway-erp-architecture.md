@@ -38,7 +38,7 @@ flowchart LR
     end
 
     DB[(MySQL 8 / PostgreSQL)]
-    MAIL[Mail<br/>Mailpit / SMTP]
+    MAIL[Mail<br/>log / SMTP]
     PAY[Payment gateway<br/>mock -> bKash / Nagad / SSLCommerz]
     SMS[SMS gateway<br/>on-screen -> paid provider]
     NID[NID service<br/>format check -> official API]
@@ -341,12 +341,12 @@ tests/
 
 | Environment | Where | Purpose | Notes |
 | --- | --- | --- | --- |
-| Local | Laragon / Herd | Development | MySQL, Mailpit, mock gateway |
+| Local | Laravel Herd (PHP 8.4) + portable MySQL 8.4 on `127.0.0.1:3307` | Development | Mail written to the log, mock gateway. Port 3307 avoids clashing with XAMPP on 3306 |
 | Demo | Dev PC + Cloudflare Tunnel / ngrok | Testers and pilot | HTTPS required for the TTE camera |
 | Staging | Small VPS | Pre-production, real gateway sandboxes | Same config as prod, fake data |
 | Production | Cloud or government data centre | Live service | Backups, monitoring, DR |
 
-Important `.env` keys: `APP_TIMEZONE=Asia/Dhaka`, `DB_CONNECTION=mysql`, `QUEUE_CONNECTION=database`, `PAYMENT_DRIVER=mock`, `SMS_DRIVER=log`, `MAIL_MAILER=smtp`.
+Important `.env` keys: `APP_TIMEZONE=Asia/Dhaka`, `DB_CONNECTION=mysql`, `QUEUE_CONNECTION=database`, `PAYMENT_DRIVER=mock`, `SMS_DRIVER=log`, `NID_DRIVER=format`, `MAIL_MAILER=log` (or `smtp` with Mailpit / Gmail), `DB_PORT=3307`.
 
 ### 2.12 Conventions
 
@@ -380,15 +380,17 @@ Each phase ends with something that can be demonstrated. Don't start a phase unt
 
 **Goal:** a running skeleton with login, roles and CI.
 
-- [ ] Create the GitHub repo, `README`, `.editorconfig`, branch rules (`main` + feature branches).
-- [ ] `laravel new railway-erp` with the Livewire starter kit; set up MySQL in `.env`; `APP_TIMEZONE=Asia/Dhaka`.
-- [ ] Install Filament, spatie/laravel-permission, spatie/laravel-activitylog; publish migrations; migrate.
-- [ ] Create enums and empty `Contracts/` with `MockGateway`, `LogSmsSender`, `FormatNidVerifier` bound in `AppServiceProvider`.
-- [ ] `RolesAndUsersSeeder`: 9 roles, permissions from §2.8, one test account per role.
-- [ ] Policies and `canAccessPanel()`; per-role Filament navigation.
-- [ ] GitHub Actions: Pint + Pest against a MySQL service container.
+**Status: ✅ complete (Nov 1, 2026).** Repo: `Riyadhasann/Railway_management_system`.
 
-**Deliverable:** login works for every role. **Exit:** `RolesTest` passes in CI.
+- [x] Create the GitHub repo, `README`, `.editorconfig`. *Branch protection on `main` is optional and set in GitHub settings by the repo owner.*
+- [x] `laravel new railway-erp` with the Livewire starter kit (Laravel 13, Filament 5, Livewire 4); MySQL in `.env`; `APP_TIMEZONE=Asia/Dhaka`.
+- [x] Install Filament, spatie/laravel-permission, spatie/laravel-activitylog; publish migrations; migrate.
+- [x] Status enums (`app/Enums`) and `Contracts/` with `LogSmsSender`, `FormatNidVerifier` bound in `AppServiceProvider`. *`PaymentGateway` + `MockGateway` moved to Phase 4 (they need the `Payment` model).*
+- [x] `RolesAndPermissionsSeeder` + `DemoUsersSeeder`: 9 roles, permissions from §2.8, one test account per role.
+- [x] `canAccessPanel()` (staff only) and admin `Gate::before`. *Policies and per-role navigation are added with each Filament resource from Phase 1 onwards.*
+- [x] GitHub Actions: Pint + PHPStan + Pest against a MySQL 8.4 service container.
+
+**Deliverable:** login works for every role. **Exit:** `RolesTest` passes in CI. ✅
 
 ### Phase 1 — Network and schedules (modules 1, 2)
 
@@ -434,6 +436,7 @@ Each phase ends with something that can be demonstrated. Don't start a phase unt
 
 **Goal:** money flow and tickets, end to end, on the mock gateway.
 
+- [ ] `PaymentGateway` contract (moved from Phase 0) bound in `AppServiceProvider`.
 - [ ] `Payment`, `Refund`, `RefundRule` migrations; Filament transaction list and refund-rule editor.
 - [ ] `MockGateway` pay page (bKash / Nagad / Card styling) with Success / Fail / Cancel.
 - [ ] `PaymentService::handleCallback()`: idempotent on `txn_id`, re-takes the train-run lock, late-payment rule.

@@ -41,7 +41,7 @@ Everything below is open-source or has a free tier, so the prototype costs nothi
 | Audit log | `spatie/laravel-activitylog` | Who changed what, shown in a Filament page |
 | Background jobs | Laravel queue (database driver) + task scheduler | Release expired seat holds, generate daily train runs, process refunds |
 | Payments | Mock gateway controller (or SSLCommerz / bKash sandbox) | No real money moves |
-| Email | Mailpit locally, or Gmail SMTP | Send e-tickets to testers |
+| Email | Log driver locally (or Mailpit), Gmail SMTP for testers | Send e-tickets to testers |
 | Code | GitHub (free) | Version control |
 
 **Sharing with testers for free:** run the app on one PC and share it with a free tunnel (Cloudflare Tunnel or ngrok), or put it on the office LAN. Phone browsers only allow camera access over HTTPS, so the TTE scanner needs the tunnel's HTTPS URL (or a local HTTPS certificate). It won't work over plain `http://` on the LAN. When you need a permanent link, a small paid VPS or shared PHP hosting is the cheapest next step.
