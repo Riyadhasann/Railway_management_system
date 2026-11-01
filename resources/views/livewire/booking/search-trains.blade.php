@@ -55,6 +55,12 @@
                                 @elseif ($option->availableSeats() === 0)
                                     <flux:badge color="amber">{{ __('Sold out') }}</flux:badge>
                                 @endif
+                                @if ($option->isBookable())
+                                    <flux:button variant="primary" size="sm" icon-trailing="arrow-right" wire:navigate
+                                        :href="route('booking.seats', ['run' => $option->run->id, 'from' => $option->fromSeq, 'to' => $option->toSeq])">
+                                        {{ __('Select seats') }}
+                                    </flux:button>
+                                @endif
                             </div>
                         </div>
 
