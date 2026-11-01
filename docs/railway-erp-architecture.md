@@ -428,15 +428,18 @@ Each phase ends with something that can be demonstrated. Don't start a phase unt
 
 **Goal:** seats can be held safely, by passengers and at the counter.
 
-- [ ] `FareService::quote()` from `FareRule` (class × distance band) + `Concession`.
-- [ ] `SeatInventoryService::hold()` as in the prototype plan (train-run lock, `coach_no + seat_id`, overlap rule).
-- [ ] `TicketService::newPnr()` (unique, no 0/O/1/I, retry on collision).
-- [ ] Livewire `SearchTrains` → `SeatMap` (with `wire:poll`) → `Checkout` with a 10-minute countdown; up to 4 passengers; NID format check; OTP shown on screen.
-- [ ] Counter booking page in Filament using the same service.
-- [ ] `holds:release` command.
-- [ ] **Concurrency test:** a script fires 20 parallel `hold()` requests for one seat against MySQL; assert exactly one booking.
+**Status: ✅ complete (Nov 1, 2026).**
 
-**Exit:** concurrency test passes; segment booking A→B + B→C on one seat works.
+- [x] `FareRule` (class × distance band, poisha) and `Concession` (percent, optional age limits) with Filament screens (Fares menu; admin edits, finance/manager view; changes audited). `FareService::quote()` prices each seat by its coach class; `applyConcession()` per passenger. `DemoFaresSeeder`: 50 km bands to 400 km, Child and Senior concessions.
+- [x] `Booking` and `Passenger` models (one passenger per seat, `channel` online/counter, `sold_by` for the clerk).
+- [x] `SeatInventoryService::hold()` as in the prototype plan (train-run lock, `coach_no + seat_id`, overlap rule), plus run/segment/departure checks and 1–4 seats. `confirm()` applies the late-payment rule (an expired hold still confirms if its seats are free, otherwise the booking expires); `release()` / `releaseExpired()`. *Counter quota: the last `counter_quota` seats of a coach (layout order) are counter-only; online maps show them as unavailable.*
+- [x] `TicketService::newPnr()` (6 characters, no 0/O/1/I, retry on collision, unique index).
+- [x] Livewire `SearchTrains` → `SelectSeats` (live map, `wire:poll` every 5 s, hold rate limit) → `Checkout` with a 10-minute countdown; up to 4 passengers; NID required from age 18 (format check); women-only seats; OTP shown on screen (`OtpService`). `TrainSearchService` matches overnight trains by boarding date. *Checkout ends with the booking `pending_payment`; payment is Phase 4.*
+- [x] Counter booking page in Filament: `BookingService::counterSale()` holds, saves passengers and confirms in one transaction (cash).
+- [x] `holds:release` command, scheduled every minute.
+- [x] **Concurrency test:** `php artisan booking:race` starts 20 PHP processes that hold one seat at the same moment; `tests/Concurrency/ParallelHoldsTest` asserts exactly one booking (MySQL in CI; skipped on SQLite). Verified to fail when the train-run lock is removed.
+
+**Exit:** concurrency test passes; segment booking A→B + B→C on one seat works. ✅
 
 ### Phase 4 — Payments, tickets and refunds (module 6)
 
