@@ -396,14 +396,17 @@ Each phase ends with something that can be demonstrated. Don't start a phase unt
 
 **Goal:** the railway network and timetable exist in the system.
 
-- [ ] Migrations and models: `Station`, `TrainRoute`, `RouteStop`, `Train`, `ScheduleStop`, `TrainRun`.
-- [ ] Filament resources: Stations; Routes with a sortable stops repeater (sequence, distance_km); Trains with running days.
-- [ ] Timetable editor: arrival/departure + `day_offset` per stop.
-- [ ] `TrainRunService::generate()` + `runs:generate` command + scheduler entry.
-- [ ] Cancel a train for one date (sets run status; refunds come in Phase 4).
-- [ ] `DemoNetworkSeeder`: 12–15 stations, 2–3 routes, 6 trains.
+**Status: ✅ complete (Nov 1, 2026).**
 
-**Exit:** the planner demo works; `GenerateRunsTest` covers running days and overnight trains.
+- [x] Migrations and models: `Station`, `TrainRoute`, `RouteStop`, `Train`, `ScheduleStop`, `TrainRun`.
+- [x] Filament resources (Network menu): Stations; Routes with a drag-to-reorder stops repeater (sequence, distance_km); Trains with running days; Train runs list.
+- [x] Timetable editor: arrival/departure + `day_offset` per stop; picking a route pre-fills its stations. Route and timetable rules live in `TimetableValidator` (shared by forms and seeders).
+- [x] `TrainRunService::generate()` + `runs:generate` command + daily 01:00 scheduler entry + "Generate runs" button.
+- [x] Cancel a train for one date with a reason (sets run status; refunds come in Phase 4).
+- [x] `NetworkPolicy` (network.view / network.manage); stations, routes and trains in use can't be deleted, even by admins.
+- [x] `DemoNetworkSeeder`: 14 stations, 2 lines as 4 directional routes, 6 trains (one overnight).
+
+**Exit:** the planner demo works; `GenerateRunsTest` covers running days and overnight trains. ✅
 
 ### Phase 2 — Coaches and inventory (modules 3, 5)
 

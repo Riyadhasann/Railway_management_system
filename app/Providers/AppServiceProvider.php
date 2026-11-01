@@ -39,8 +39,10 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->configureDefaults();
 
-        // Admins pass every permission check.
-        Gate::before(fn (User $user): ?bool => $user->hasRole(Role::Admin->value) ? true : null);
+        // Admins pass every permission-name check (e.g. "network.manage"). Policy abilities
+        // ("delete", "update"...) are not short-circuited, so record-level safety rules
+        // such as "a station used on a route can't be deleted" still apply to admins.
+        Gate::before(fn (User $user, string $ability): ?bool => str_contains($ability, '.') && $user->hasRole(Role::Admin->value) ? true : null);
     }
 
     /**
