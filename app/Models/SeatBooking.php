@@ -27,6 +27,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $reason
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
+ * @property-read Booking|null $booking
  * @property-read TrainRun $trainRun
  * @property-read Seat $seat
  * @property-read User|null $blocker
@@ -42,6 +43,14 @@ class SeatBooking extends Model
             'status' => SeatBookingStatus::class,
             'hold_until' => 'immutable_datetime',
         ];
+    }
+
+    /**
+     * @return BelongsTo<Booking, $this>
+     */
+    public function booking(): BelongsTo
+    {
+        return $this->belongsTo(Booking::class);
     }
 
     /**

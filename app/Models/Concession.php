@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
@@ -39,6 +40,14 @@ class Concession extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()->logFillable()->logOnlyDirty();
+    }
+
+    /**
+     * @return HasMany<Passenger, $this>
+     */
+    public function passengers(): HasMany
+    {
+        return $this->hasMany(Passenger::class);
     }
 
     public function allowsAge(int $age): bool

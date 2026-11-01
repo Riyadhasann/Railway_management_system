@@ -58,6 +58,14 @@ class TrainRun extends Model
         return $this->hasMany(SeatBooking::class);
     }
 
+    /**
+     * @return HasMany<Booking, $this>
+     */
+    public function bookings(): HasMany
+    {
+        return $this->hasMany(Booking::class);
+    }
+
     public function isCancelled(): bool
     {
         return $this->status === RunStatus::Cancelled;
