@@ -21,7 +21,7 @@ class FareService
     /**
      * Base fare for each seat over the segment from -> to.
      *
-     * @param  list<array{coach_no: string, seat_id: int}>  $seats
+     * @param  array<int, array{coach_no: string, seat_id: int}>  $seats
      */
     public function quote(TrainRun $run, array $seats, int $fromSeq, int $toSeq): FareQuote
     {
