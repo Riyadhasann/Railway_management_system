@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
             DemoUsersSeeder::class,
             DemoNetworkSeeder::class,
             DemoCoachesSeeder::class,
+            DemoFaresSeeder::class,
         ]);
     }
 }
