@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\TrainRuns;
 
 use App\Filament\Resources\TrainRuns\Pages\ListTrainRuns;
+use App\Filament\Resources\TrainRuns\Pages\ViewSeatMap;
 use App\Filament\Resources\TrainRuns\Tables\TrainRunsTable;
 use App\Models\TrainRun;
 use BackedEnum;
@@ -38,6 +39,7 @@ class TrainRunResource extends Resource
     {
         return [
             'index' => ListTrainRuns::route('/'),
+            'seats' => ViewSeatMap::route('/{record}/seats'),
         ];
     }
 }

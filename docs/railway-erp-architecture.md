@@ -412,14 +412,17 @@ Each phase ends with something that can be demonstrated. Don't start a phase unt
 
 **Goal:** every train run knows its seats.
 
-- [ ] `CoachType`, `Seat`, `RakeCoach`, `Quota` migrations and resources.
-- [ ] **Seat-layout grid editor** (custom Filament page: rows × columns, click to place a seat or berth, set flags such as women-only). *Highest-risk custom UI, so time-box it to 3 days; fall back to a simple table form.*
-- [ ] Rake composition per train (ordered coaches with `coach_no`).
-- [ ] `SeatInventoryService::availability(run, fromSeq, toSeq)` returns the per-coach seat states.
-- [ ] Read-only seat map component used by both back-office and portal.
-- [ ] Admin seat blocking (`SeatBooking` with status `blocked`).
+**Status: ✅ complete (Nov 1, 2026).**
 
-**Exit:** a run's seat map renders correctly for every coach type; blocked seats show as unavailable.
+- [x] `CoachType`, `Seat`, `RakeCoach` migrations and resources (Coaches menu). *Quotas are a `counter_quota` column on `RakeCoach` instead of a separate `Quota` table; enforced in Phase 3.*
+- [x] **Seat-layout grid editor** (custom Filament page): pick a tool (seat, lower/upper berth, women only, accessible, erase) and click cells; "Fill pattern" draws a whole coach from its aisle columns; renumber; seats with bookings or blocks can't be removed. Logic in `SeatLayoutService`.
+- [x] Rake composition per train (ordered coaches with `coach_no`, coach type and counter quota) in the train form; coaches with bookings or blocks can't be removed or retyped.
+- [x] `SeatInventoryService::availability(run, fromSeq, toSeq)` returns per-coach seat states (`CoachMap` / `SeatCell`); `block()` / `unblock()` lock the train run first.
+- [x] Read-only `<x-seat-map>` Blade component (back-office now, portal in Phase 3).
+- [x] Admin seat blocking from the run's **Seat map** page (`SeatBooking` with status `blocked`, reason and who blocked it).
+- [x] `DemoCoachesSeeder`: 4 coach types (AC berth, AC chair, Snigdha, Shovan chair; 182 layout seats) and a 6-coach rake per demo train.
+
+**Exit:** a run's seat map renders correctly for every coach type; blocked seats show as unavailable. ✅
 
 ### Phase 3 — Booking engine (modules 4, 5)
 

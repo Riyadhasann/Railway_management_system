@@ -61,6 +61,16 @@ class Train extends Model
     }
 
     /**
+     * Coach composition in order from the engine.
+     *
+     * @return HasMany<RakeCoach, $this>
+     */
+    public function rakeCoaches(): HasMany
+    {
+        return $this->hasMany(RakeCoach::class)->orderBy('position');
+    }
+
+    /**
      * @return HasMany<TrainRun, $this>
      */
     public function runs(): HasMany

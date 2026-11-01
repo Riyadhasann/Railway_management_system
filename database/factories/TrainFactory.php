@@ -2,6 +2,8 @@
 
 namespace Database\Factories;
 
+use App\Models\CoachType;
+use App\Models\RakeCoach;
 use App\Models\ScheduleStop;
 use App\Models\Train;
 use App\Models\TrainRoute;
@@ -33,6 +35,26 @@ class TrainFactory extends Factory
     public function runningOn(array $days): static
     {
         return $this->state(['running_days' => $days]);
+    }
+
+    /**
+     * Coaches KA, KHA, ... all of one new coach type with seats (12 seats each by default).
+     */
+    public function withCoaches(int $count = 2): static
+    {
+        return $this->afterCreating(function (Train $train) use ($count) {
+            $type = CoachType::factory()->withSeats()->create();
+            $names = ['KA', 'KHA', 'GA', 'GHA', 'CHA', 'JA'];
+
+            foreach (range(0, $count - 1) as $i) {
+                RakeCoach::create([
+                    'train_id' => $train->id,
+                    'coach_no' => $names[$i] ?? 'C'.($i + 1),
+                    'coach_type_id' => $type->id,
+                    'position' => $i + 1,
+                ]);
+            }
+        });
     }
 
     /**

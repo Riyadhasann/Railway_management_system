@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\TrainRuns\Tables;
 
 use App\Enums\RunStatus;
+use App\Filament\Resources\TrainRuns\TrainRunResource;
 use App\Models\TrainRun;
 use App\Services\TrainRunService;
 use DomainException;
@@ -54,6 +55,11 @@ class TrainRunsTable
                 SelectFilter::make('train_id')->label('Train')->relationship('train', 'name'),
             ])
             ->recordActions([
+                Action::make('seats')
+                    ->label('Seat map')
+                    ->icon(Heroicon::OutlinedSquares2x2)
+                    ->color('gray')
+                    ->url(fn (TrainRun $record) => TrainRunResource::getUrl('seats', ['record' => $record])),
                 Action::make('cancel')
                     ->label('Cancel run')
                     ->icon(Heroicon::OutlinedXCircle)

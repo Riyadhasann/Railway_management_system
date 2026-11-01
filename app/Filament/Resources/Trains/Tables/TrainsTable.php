@@ -18,7 +18,7 @@ class TrainsTable
         return $table
             ->modifyQueryUsing(fn (Builder $query) => $query
                 ->with(['trainRoute', 'scheduleStops.routeStop.station'])
-                ->withCount('scheduleStops'))
+                ->withCount(['scheduleStops', 'rakeCoaches']))
             ->defaultSort('number')
             ->columns([
                 TextColumn::make('number')->searchable()->sortable()->badge(),
@@ -32,6 +32,7 @@ class TrainsTable
                     ->label('Runs')
                     ->state(fn (Train $record) => $record->runningDaysLabel()),
                 TextColumn::make('schedule_stops_count')->label('Stops'),
+                TextColumn::make('rake_coaches_count')->label('Coaches'),
                 IconColumn::make('is_active')->label('Active')->boolean(),
             ])
             ->filters([
