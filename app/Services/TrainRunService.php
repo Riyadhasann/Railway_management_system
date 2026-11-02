@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\RunStatus;
+use App\Events\TrainRunCancelled;
 use App\Models\Train;
 use App\Models\TrainRun;
 use Carbon\CarbonImmutable;
@@ -56,7 +57,8 @@ class TrainRunService
     }
 
     /**
-     * Cancel one train run. Refunds for its bookings are added in Phase 4.
+     * Cancel one train run. TrainRunCancelled (after commit) releases its holds
+     * and queues a full refund for every confirmed booking.
      */
     public function cancel(TrainRun $run, string $reason): TrainRun
     {
@@ -73,6 +75,8 @@ class TrainRunService
                 'cancelled_at' => now(),
                 'cancel_reason' => $reason,
             ]);
+
+            TrainRunCancelled::dispatch($locked);
 
             return $locked;
         });

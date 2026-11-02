@@ -171,9 +171,11 @@ class SeatInventoryService
     /**
      * Turn a held booking into a sale: booking confirmed, seats booked.
      * A hold that has run out still succeeds if nobody has taken its seats since
-     * (late payment rule); otherwise the booking expires and HoldExpiredException is thrown.
+     * (late payment rule), even after holds:release has marked it expired;
+     * otherwise the booking expires and HoldExpiredException is thrown.
      *
      * @throws HoldExpiredException
+     * @throws BookingRefusedException if the booking was cancelled or failed, or the run was cancelled
      */
     public function confirm(Booking $booking): Booking
     {
@@ -186,8 +188,12 @@ class SeatInventoryService
                 return true; // idempotent
             }
 
-            if ($booking->status !== BookingStatus::PendingPayment) {
+            if (! in_array($booking->status, [BookingStatus::PendingPayment, BookingStatus::Expired], true)) {
                 throw new BookingRefusedException("Booking {$booking->pnr} is {$booking->status->getLabel()} and can not be confirmed.");
+            }
+
+            if ($booking->trainRun()->firstOrFail()->isCancelled()) {
+                throw new BookingRefusedException('This train run has been cancelled.');
             }
 
             if (! $booking->isHeld() && $this->takenByOthers($booking)) {
@@ -196,6 +202,7 @@ class SeatInventoryService
                 return false;
             }
 
+            // Held seats, or (late payment) seats released when the hold expired.
             $booking->seatBookings()->update([
                 'status' => SeatBookingStatus::Booked->value,
                 'hold_until' => null,
@@ -228,6 +235,22 @@ class SeatInventoryService
             if ($booking->status === BookingStatus::PendingPayment) {
                 $this->markReleased($booking, $as);
             }
+        });
+    }
+
+    /**
+     * Put a sold booking's seats back on sale (cancellation). The caller sets the booking status.
+     *
+     * @return int number of seat rows cancelled
+     */
+    public function cancelSeats(Booking $booking): int
+    {
+        return DB::transaction(function () use ($booking) {
+            $this->lock($booking->trainRun);
+
+            return $booking->seatBookings()
+                ->whereIn('status', [SeatBookingStatus::Booked->value, SeatBookingStatus::Held->value])
+                ->update(['status' => SeatBookingStatus::Cancelled->value, 'hold_until' => null]);
         });
     }
 

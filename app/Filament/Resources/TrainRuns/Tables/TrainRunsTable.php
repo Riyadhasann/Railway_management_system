@@ -67,7 +67,7 @@ class TrainRunsTable
                     ->visible(fn (TrainRun $record) => $record->status === RunStatus::Scheduled)
                     ->authorize('update')
                     ->requiresConfirmation()
-                    ->modalDescription('Passengers will be refunded automatically once payments are live (Phase 4).')
+                    ->modalDescription('Unpaid holds are released and every confirmed passenger gets a full refund automatically.')
                     ->schema([
                         Textarea::make('reason')->required()->maxLength(255),
                     ])
