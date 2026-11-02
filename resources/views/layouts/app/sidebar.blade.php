@@ -16,8 +16,11 @@
                         {{ __('Dashboard') }}
                     </flux:sidebar.item>
                     @can(\App\Enums\Permission::BookOwnTickets->value)
-                        <flux:sidebar.item icon="ticket" :href="route('booking.search')" :current="request()->routeIs('booking.*')" wire:navigate>
+                        <flux:sidebar.item icon="ticket" :href="route('booking.search')" :current="request()->routeIs('booking.search', 'booking.seats', 'booking.checkout')" wire:navigate>
                             {{ __('Book tickets') }}
+                        </flux:sidebar.item>
+                        <flux:sidebar.item icon="queue-list" :href="route('booking.mine')" :current="request()->routeIs('booking.mine', 'booking.show')" wire:navigate>
+                            {{ __('My bookings') }}
                         </flux:sidebar.item>
                     @endcan
                 </flux:sidebar.group>

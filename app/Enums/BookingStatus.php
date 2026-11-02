@@ -17,4 +17,17 @@ enum BookingStatus: string implements HasLabel
     {
         return str($this->value)->replace('_', ' ')->ucfirst()->toString();
     }
+
+    /**
+     * Badge colour in the passenger portal (Flux colour names).
+     */
+    public function badgeColor(): string
+    {
+        return match ($this) {
+            self::Confirmed, self::Completed => 'green',
+            self::PendingPayment => 'amber',
+            self::Cancelled => 'zinc',
+            self::Failed, self::Expired => 'red',
+        };
+    }
 }
