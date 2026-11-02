@@ -445,15 +445,17 @@ Each phase ends with something that can be demonstrated. Don't start a phase unt
 
 **Goal:** money flow and tickets, end to end, on the mock gateway.
 
-- [ ] `PaymentGateway` contract (moved from Phase 0) bound in `AppServiceProvider`.
-- [ ] `Payment`, `Refund`, `RefundRule` migrations; Filament transaction list and refund-rule editor.
-- [ ] `MockGateway` pay page (bKash / Nagad / Card styling) with Success / Fail / Cancel.
-- [ ] `PaymentService::handleCallback()`: idempotent on `txn_id`, re-takes the train-run lock, late-payment rule.
-- [ ] `TicketService::issue()`: signed QR token, dompdf ticket, `SendTicketEmail` job.
-- [ ] Passenger and counter cancellation → `RefundService::calculate()` from hours-before-departure rules.
-- [ ] `TrainRunCancelled` → `RefundBookingJob` for every confirmed booking.
+**Status: ✅ complete (Nov 2, 2026).**
 
-**Exit:** the prototype "Booking and payment" and "Refunds" scenarios all pass.
+- [x] `PaymentGateway` contract (moved from Phase 0) bound in `AppServiceProvider` (`PAYMENT_DRIVER=mock`).
+- [x] `Payment` (own `reference` + unique gateway `txn_id`, `refunded_poisha`), `Refund` (reason, percent, fee, hours before, status) and `RefundRule` (hours_before, percent, fee per booking). Filament: **Finance → Transactions** and **Refunds** (finance retries failed refunds), **Fares → Refund rules** (admin edits; finance/manager view). `DemoRefundRulesSeeder`: 48 h 90%, 24 h 75%, 12 h 50%, ৳20 fee; under 12 h no refund.
+- [x] `MockGateway` pay page (bKash / Nagad / Card styling, signed link) with Success / Fail / Cancel; the buttons post an HMAC-signed callback to `PaymentController@callback` (CSRF-exempt, like a real gateway). Fail → booking `failed`, seats released; Cancel → hold kept so another method can be tried.
+- [x] `PaymentService::handleCallback()`: re-takes the train-run lock, ignores a payment that is already final, unique `txn_id`. Late-payment rule: an expired hold (even after `holds:release`) still confirms if its seats are free; otherwise, and for a duplicate payment or a cancelled run, the payment is refunded in full. Counter sales record a cash `Payment`.
+- [x] `TicketService`: signed QR token (`base64url(pnr|run_id|hmac)`, `parseToken()` for the Phase 5 scanner), dompdf A4 ticket with a PNG QR (endroid/qr-code, GD), `issue()` queues `SendTicketEmail` after commit. Download at `/tickets/{pnr}/pdf` (owner, counter clerk, finance); counter page has "Print ticket".
+- [x] Cancellation → `RefundService::quote()` / `cancel()` from hours-before-departure rules (largest applicable rule wins). Passenger portal: **My bookings** and booking page with ticket download and "Cancel and refund ৳X"; back-office **Bookings → Cancel and refund** by PNR (cash refunds handed back at the counter). Refunds are created in the booking transaction and sent to the gateway after it commits; failures are kept and can be retried.
+- [x] `TrainRunCancelled` (after commit) → `RefundCancelledRun` releases unpaid holds and queues `RefundBookingJob` (100%, no fee) for every confirmed booking. *Needs a queue worker locally (`composer run dev` starts one).*
+
+**Exit:** the prototype "Booking and payment" and "Refunds" scenarios pass (`tests/Feature/Payments`: callback success/fail/cancel/duplicate/late/tampered, refund rules, train cancellation, PDF access; also run on MySQL). ✅
 
 ### Phase 5 — Operations (modules 2, 7, 8)
 
