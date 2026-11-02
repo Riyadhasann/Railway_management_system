@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\Gender;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -20,13 +21,15 @@ use Illuminate\Support\Carbon;
  * @property string|null $nid
  * @property int|null $concession_id
  * @property int $fare_poisha after any concession
+ * @property CarbonImmutable|null $no_show_at
+ * @property int|null $no_show_by
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property-read Booking $booking
  * @property-read SeatBooking $seatBooking
  * @property-read Concession|null $concession
  */
-#[Fillable(['booking_id', 'seat_booking_id', 'name', 'age', 'gender', 'nid', 'concession_id', 'fare_poisha'])]
+#[Fillable(['booking_id', 'seat_booking_id', 'name', 'age', 'gender', 'nid', 'concession_id', 'fare_poisha', 'no_show_at', 'no_show_by'])]
 class Passenger extends Model
 {
     protected function casts(): array
@@ -35,7 +38,13 @@ class Passenger extends Model
             'age' => 'integer',
             'gender' => Gender::class,
             'fare_poisha' => 'integer',
+            'no_show_at' => 'immutable_datetime',
         ];
+    }
+
+    public function isNoShow(): bool
+    {
+        return $this->no_show_at !== null;
     }
 
     /**
