@@ -65,6 +65,11 @@
                 {{ $last->passengers->map(fn ($p) => $p->name.' ('.$p->seatBooking->coach_no.'-'.$p->seatBooking->seat->seat_no.', '.Money::format($p->fare_poisha).')')->join(', ') }}
                 · <strong>Total {{ Money::format($last->total_poisha) }}</strong>
             </p>
+            <div style="margin-top:.75rem;">
+                <x-filament::button tag="a" :href="route('tickets.pdf', $last)" icon="heroicon-o-printer" color="gray" target="_blank">
+                    Print ticket (PDF)
+                </x-filament::button>
+            </div>
         </x-filament::section>
     @endif
 

@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\Permission;
+use App\Http\Controllers\TicketPdfController;
 use App\Livewire\Booking\Checkout;
 use App\Livewire\Booking\SearchTrains;
 use App\Livewire\Booking\SelectSeats;
@@ -18,5 +19,8 @@ Route::middleware(['auth', 'verified', 'can:'.Permission::BookOwnTickets->value]
     Route::livewire('runs/{run}/seats/{from}/{to}', SelectSeats::class)->whereNumber(['from', 'to'])->name('seats');
     Route::livewire('checkout/{booking}', Checkout::class)->name('checkout');
 });
+
+// PDF e-ticket: the booking's owner, or counter / finance staff (checked in the controller).
+Route::get('tickets/{booking}/pdf', TicketPdfController::class)->middleware(['auth', 'verified'])->name('tickets.pdf');
 
 require __DIR__.'/settings.php';
