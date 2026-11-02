@@ -66,9 +66,31 @@ class TrainRun extends Model
         return $this->hasMany(Booking::class);
     }
 
+    /**
+     * @return HasMany<RunStopTime, $this>
+     */
+    public function stopTimes(): HasMany
+    {
+        return $this->hasMany(RunStopTime::class);
+    }
+
     public function isCancelled(): bool
     {
         return $this->status === RunStatus::Cancelled;
+    }
+
+    /**
+     * What passengers are told about the train's progress, or null before it has any news.
+     */
+    public function progressLabel(): ?string
+    {
+        return match (true) {
+            $this->status === RunStatus::Arrived => 'Arrived',
+            $this->status === RunStatus::Cancelled => null,
+            $this->delay_minutes > 0 => "Running {$this->delay_minutes} min late",
+            $this->status === RunStatus::Running => 'Running on time',
+            default => null,
+        };
     }
 
     /**

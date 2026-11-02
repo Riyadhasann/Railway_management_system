@@ -42,6 +42,15 @@
         </flux:callout>
     @endif
 
+    @if ($booking->hasTicket() && $run->progressLabel())
+        <flux:callout :variant="$run->delay_minutes > 0 ? 'warning' : 'secondary'" icon="clock" data-test="progress">
+            <flux:callout.heading>{{ $run->progressLabel() }}</flux:callout.heading>
+            @if ($run->delay_minutes > 0 && $departure?->isFuture())
+                <flux:callout.text>{{ __('Expected to leave :station at about :time.', ['station' => $stops->get($booking->from_seq)?->routeStop->station->name, 'time' => $departure->addMinutes($run->delay_minutes)->format('H:i')]) }}</flux:callout.text>
+            @endif
+        </flux:callout>
+    @endif
+
     @if ($run->isCancelled())
         <flux:callout variant="danger" icon="exclamation-triangle">
             <flux:callout.heading>{{ __('This train has been cancelled') }}</flux:callout.heading>

@@ -18,6 +18,9 @@
                     <div class="flex flex-wrap items-center gap-2">
                         <span class="font-mono text-lg font-semibold tracking-wider">{{ $booking->pnr }}</span>
                         <flux:badge size="sm" :color="$booking->status->badgeColor()">{{ $booking->status->getLabel() }}</flux:badge>
+                        @if ($booking->hasTicket() && $booking->trainRun->progressLabel())
+                            <flux:badge size="sm" :color="$booking->trainRun->delay_minutes > 0 ? 'amber' : 'zinc'" icon="clock">{{ $booking->trainRun->progressLabel() }}</flux:badge>
+                        @endif
                     </div>
                     <flux:text class="mt-1">
                         {{ $booking->trainRun->train->label() }} · {{ $this->stationName($booking, $booking->from_seq) }} → {{ $this->stationName($booking, $booking->to_seq) }}
