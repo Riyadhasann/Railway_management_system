@@ -3,9 +3,11 @@
 namespace App\Providers;
 
 use App\Contracts\NidVerifier;
+use App\Contracts\PaymentGateway;
 use App\Contracts\SmsSender;
 use App\Enums\Role;
 use App\Gateways\Nid\FormatNidVerifier;
+use App\Gateways\Payment\MockGateway;
 use App\Gateways\Sms\LogSmsSender;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -29,6 +31,10 @@ class AppServiceProvider extends ServiceProvider
 
         $this->app->singleton(NidVerifier::class, fn (): NidVerifier => match (config('services.nid.driver')) {
             default => new FormatNidVerifier,
+        });
+
+        $this->app->singleton(PaymentGateway::class, fn (): PaymentGateway => match (config('services.payment.driver')) {
+            default => new MockGateway,
         });
     }
 
