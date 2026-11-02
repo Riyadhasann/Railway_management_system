@@ -124,6 +124,14 @@ class Booking extends Model
     }
 
     /**
+     * @return HasMany<TicketScan, $this>
+     */
+    public function ticketScans(): HasMany
+    {
+        return $this->hasMany(TicketScan::class);
+    }
+
+    /**
      * @return BelongsTo<User, $this>
      */
     public function canceller(): BelongsTo

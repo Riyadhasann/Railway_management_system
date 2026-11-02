@@ -2,19 +2,26 @@
 
 namespace App\Services;
 
+use App\Data\ScanOutcome;
+use App\Enums\BookingStatus;
+use App\Enums\ScanResult;
 use App\Jobs\SendTicketEmail;
 use App\Models\Booking;
 use App\Models\ScheduleStop;
+use App\Models\TicketScan;
+use App\Models\TrainRun;
+use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Barryvdh\DomPDF\PDF as DomPdf;
 use Endroid\QrCode\ErrorCorrectionLevel;
 use Endroid\QrCode\QrCode;
 use Endroid\QrCode\Writer\PngWriter;
+use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
 /**
- * PNRs, signed QR tokens and the PDF e-ticket.
- * Ticket validation for the TTE scanner builds on parseToken().
+ * PNRs, signed QR tokens, the PDF e-ticket, and ticket checking:
+ * validate() checks a scanned ticket for the TTE and records the scan.
  */
 class TicketService
 {
@@ -104,6 +111,57 @@ class TicketService
     }
 
     /**
+     * Check a scanned ticket on the run the TTE is working, and record the scan.
+     * A ticket is accepted once; later scans of it show as already used.
+     */
+    public function validate(string $token, TrainRun $run, User $tte): ScanOutcome
+    {
+        $parsed = $this->parseToken($token);
+
+        if ($parsed === null) {
+            return $this->record(ScanResult::Invalid, 'This is not a valid ticket code.', $run, $tte);
+        }
+
+        return DB::transaction(function () use ($parsed, $run, $tte) {
+            // Lock the booking so two TTEs scanning the same ticket can't both accept it.
+            /** @var Booking|null $booking */
+            $booking = Booking::query()
+                ->where('pnr', $parsed['pnr'])
+                ->where('train_run_id', $parsed['train_run_id'])
+                ->lockForUpdate()
+                ->first();
+
+            if ($booking === null) {
+                return $this->record(ScanResult::Invalid, 'No booking matches this ticket.', $run, $tte, pnr: $parsed['pnr']);
+            }
+
+            if ($booking->train_run_id !== $run->id) {
+                $ticketRun = $booking->trainRun;
+
+                return $ticketRun->train_id === $run->train_id
+                    ? $this->record(ScanResult::WrongDate, "This ticket is for {$ticketRun->journey_date->format('D d M Y')}, not today's run.", $run, $tte, $booking)
+                    : $this->record(ScanResult::Invalid, "This ticket is for train {$ticketRun->train->label()}.", $run, $tte, $booking);
+            }
+
+            if ($booking->status === BookingStatus::Cancelled) {
+                return $this->record(ScanResult::Cancelled, 'This booking was cancelled.', $run, $tte, $booking);
+            }
+
+            if (! $booking->hasTicket()) {
+                return $this->record(ScanResult::Invalid, "This booking is {$booking->status->getLabel()}, not a paid ticket.", $run, $tte, $booking);
+            }
+
+            $first = $booking->ticketScans()->where('result', ScanResult::Valid->value)->oldest('scanned_at')->first();
+
+            if ($first !== null) {
+                return $this->record(ScanResult::AlreadyUsed, "Already checked at {$first->scanned_at->format('H:i')} by {$first->tte->name}.", $run, $tte, $booking, $first);
+            }
+
+            return $this->record(ScanResult::Valid, 'Valid ticket.', $run, $tte, $booking);
+        });
+    }
+
+    /**
      * PNG QR code of the signed token, as a data URI (dompdf and <img> both read it).
      */
     public function qrDataUri(Booking $booking): string
@@ -139,6 +197,20 @@ class TicketService
     public function pdfFilename(Booking $booking): string
     {
         return "ticket-{$booking->pnr}.pdf";
+    }
+
+    private function record(ScanResult $result, string $message, TrainRun $run, User $tte, ?Booking $booking = null, ?TicketScan $first = null, ?string $pnr = null): ScanOutcome
+    {
+        $scan = TicketScan::create([
+            'booking_id' => $booking?->id,
+            'train_run_id' => $run->id,
+            'tte_id' => $tte->id,
+            'result' => $result,
+            'pnr' => $booking->pnr ?? $pnr,
+            'scanned_at' => now(),
+        ]);
+
+        return new ScanOutcome($result, $message, $scan, $booking, $first);
     }
 
     private function sign(string $payload): string
