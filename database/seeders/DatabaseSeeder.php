@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
             DemoNetworkSeeder::class,
             DemoCoachesSeeder::class,
             DemoFaresSeeder::class,
+            DemoRefundRulesSeeder::class,
         ]);
     }
 }

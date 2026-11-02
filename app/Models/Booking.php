@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\BookingStatus;
 use App\Enums\Channel;
+use App\Enums\PaymentStatus;
 use Carbon\CarbonImmutable;
 use Database\Factories\BookingFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -33,13 +34,15 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property string|null $contact_phone
  * @property string|null $contact_email
  * @property CarbonImmutable|null $confirmed_at
+ * @property CarbonImmutable|null $cancelled_at
+ * @property int|null $cancelled_by
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property-read User|null $user
  * @property-read User|null $seller
  * @property-read TrainRun $trainRun
  */
-#[Fillable(['pnr', 'user_id', 'sold_by', 'train_run_id', 'channel', 'from_seq', 'to_seq', 'total_poisha', 'status', 'hold_until', 'contact_phone', 'contact_email', 'confirmed_at'])]
+#[Fillable(['pnr', 'user_id', 'sold_by', 'train_run_id', 'channel', 'from_seq', 'to_seq', 'total_poisha', 'status', 'hold_until', 'contact_phone', 'contact_email', 'confirmed_at', 'cancelled_at', 'cancelled_by'])]
 class Booking extends Model
 {
     /** @use HasFactory<BookingFactory> */
@@ -55,6 +58,7 @@ class Booking extends Model
             'status' => BookingStatus::class,
             'hold_until' => 'immutable_datetime',
             'confirmed_at' => 'immutable_datetime',
+            'cancelled_at' => 'immutable_datetime',
         ];
     }
 
@@ -101,6 +105,51 @@ class Booking extends Model
     public function passengers(): HasMany
     {
         return $this->hasMany(Passenger::class);
+    }
+
+    /**
+     * @return HasMany<Payment, $this>
+     */
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
+    }
+
+    /**
+     * @return HasMany<Refund, $this>
+     */
+    public function refunds(): HasMany
+    {
+        return $this->hasMany(Refund::class);
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function canceller(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'cancelled_by');
+    }
+
+    /**
+     * The payment that bought this booking (the first successful one).
+     */
+    public function paidPayment(): ?Payment
+    {
+        return $this->payments()
+            ->whereIn('status', PaymentStatus::captured())
+            ->whereNotNull('paid_at')
+            ->orderBy('paid_at')
+            ->orderBy('id')
+            ->first();
+    }
+
+    /**
+     * Confirmed: a valid ticket exists for it.
+     */
+    public function hasTicket(): bool
+    {
+        return $this->status === BookingStatus::Confirmed || $this->status === BookingStatus::Completed;
     }
 
     /**
