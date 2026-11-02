@@ -13,3 +13,6 @@ Schedule::command('runs:generate')->dailyAt('01:00');
 
 // Expire unpaid seat holds (config/railway.php: hold_minutes).
 Schedule::command('holds:release')->everyMinute();
+
+// Tell crew controllers about driving licences and loco maintenance coming due.
+Schedule::command('crew:expiry-warnings')->dailyAt('07:00');

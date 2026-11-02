@@ -12,6 +12,7 @@ use App\Models\Staff;
 use App\Models\TrainRun;
 use App\Models\User;
 use DomainException;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -23,6 +24,12 @@ use Illuminate\Support\Facades\DB;
  */
 class CrewService
 {
+    /** Warn about driving licences expiring within this many days. */
+    public const int LICENCE_WARNING_DAYS = 30;
+
+    /** Warn about loco maintenance due within this many days. */
+    public const int MAINTENANCE_WARNING_DAYS = 7;
+
     /**
      * @throws DomainException
      */
@@ -145,6 +152,32 @@ class CrewService
         }
 
         return $problems;
+    }
+
+    /**
+     * Active drivers whose licence has expired or expires within $licenceDays, and working
+     * locos whose maintenance is overdue or due within $maintenanceDays (soonest first).
+     *
+     * @return array{licences: Collection<int, Staff>, locos: Collection<int, Locomotive>}
+     */
+    public function expiryWarnings(int $licenceDays = self::LICENCE_WARNING_DAYS, int $maintenanceDays = self::MAINTENANCE_WARNING_DAYS): array
+    {
+        $licences = Staff::query()
+            ->where('is_active', true)
+            ->whereIn('designation', [StaffDesignation::Driver->value, StaffDesignation::AssistantDriver->value])
+            ->where(fn ($q) => $q
+                ->whereNull('licence_expires_on')
+                ->orWhereDate('licence_expires_on', '<=', now()->addDays($licenceDays)->toDateString()))
+            ->orderBy('licence_expires_on')
+            ->get();
+
+        $locos = Locomotive::query()
+            ->where('status', '!=', LocoStatus::Retired->value)
+            ->whereDate('next_maintenance_due', '<=', now()->addDays($maintenanceDays)->toDateString())
+            ->orderBy('next_maintenance_due')
+            ->get();
+
+        return ['licences' => $licences, 'locos' => $locos];
     }
 
     private function lockRun(TrainRun $run): TrainRun
