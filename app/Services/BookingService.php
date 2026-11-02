@@ -31,6 +31,7 @@ class BookingService
         private readonly SeatInventoryService $inventory,
         private readonly FareService $fares,
         private readonly NidVerifier $nid,
+        private readonly PaymentService $payments,
     ) {}
 
     /**
@@ -130,7 +131,7 @@ class BookingService
     }
 
     /**
-     * Counter sale in one step: hold, passengers and confirm (cash taken), all or nothing.
+     * Counter sale in one step: hold, passengers, confirm and the cash payment, all or nothing.
      *
      * @param  array<int, array{coach_no: string, seat_id: int|string}>  $seats
      * @param  list<array{name: string, age: int|string, gender: string, nid?: string|null, concession_id?: int|string|null}>  $passengers
@@ -142,8 +143,10 @@ class BookingService
         return DB::transaction(function () use ($run, $seats, $fromSeq, $toSeq, $passengers, $clerk, $contactPhone) {
             $booking = $this->inventory->hold($run, $seats, $fromSeq, $toSeq, Channel::Counter, soldBy: $clerk);
             $this->savePassengers($booking, $passengers, $contactPhone);
+            $this->inventory->confirm($booking);
+            $this->payments->recordCash($booking, $clerk);
 
-            return $this->inventory->confirm($booking);
+            return $booking->refresh();
         });
     }
 }

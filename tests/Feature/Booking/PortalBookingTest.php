@@ -125,7 +125,7 @@ describe('checkout', function () {
             ->call('save')
             ->assertHasNoErrors()
             ->assertSee('৳150')
-            ->assertSee('Online payment is not switched on yet');
+            ->assertSee('Pay ৳150');
 
         expect($this->booking->refresh()->total_poisha)->toBe(15000)
             ->and($this->booking->contact_phone)->toBe('01712345678')

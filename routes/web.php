@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\Permission;
+use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\TicketPdfController;
 use App\Livewire\Booking\BookingDetails;
 use App\Livewire\Booking\Checkout;
@@ -26,5 +27,10 @@ Route::middleware(['auth', 'verified', 'can:'.Permission::BookOwnTickets->value]
 
 // PDF e-ticket: the booking's owner, or counter / finance staff (checked in the controller).
 Route::get('tickets/{booking}/pdf', TicketPdfController::class)->middleware(['auth', 'verified'])->name('tickets.pdf');
+
+// Mock payment gateway. The pay page is reached by a signed link; the callback is verified
+// by the gateway's own signature and is exempt from CSRF, like a real gateway's callback.
+Route::get('pay/mock/{payment}', [PaymentController::class, 'mock'])->middleware('signed')->name('payments.mock');
+Route::post('payments/callback', [PaymentController::class, 'callback'])->name('payments.callback');
 
 require __DIR__.'/settings.php';

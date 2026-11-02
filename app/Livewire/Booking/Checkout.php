@@ -4,6 +4,7 @@ namespace App\Livewire\Booking;
 
 use App\Enums\BookingStatus;
 use App\Enums\Gender;
+use App\Enums\PaymentMethod;
 use App\Exceptions\BookingRefusedException;
 use App\Models\Booking;
 use App\Models\Concession;
@@ -12,6 +13,7 @@ use App\Models\ScheduleStop;
 use App\Models\SeatBooking;
 use App\Services\BookingService;
 use App\Services\OtpService;
+use App\Services\PaymentService;
 use App\Services\SeatInventoryService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
@@ -21,8 +23,8 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 
 /**
- * Passenger portal step 3: passenger details and phone check while the hold counts down.
- * Ends with the booking waiting for payment.
+ * Passenger portal step 3: passenger details and phone check while the hold counts down,
+ * then off to the payment gateway.
  *
  * @property-read Collection<int, SeatBooking> $seats
  * @property-read Collection<int, Concession> $concessions
@@ -51,9 +53,15 @@ class Checkout extends Component
     #[Locked]
     public ?string $verifiedPhone = null;
 
+    public string $method = 'bkash';
+
     public function mount(Booking $booking): void
     {
         abort_unless($booking->user_id === auth()->id(), 403);
+
+        if ($booking->hasTicket()) {
+            $this->redirectRoute('booking.show', ['booking' => $booking->pnr], navigate: true);
+        }
 
         $this->booking = $booking;
         $saved = $booking->passengers()->get()->keyBy('seat_booking_id');
@@ -184,6 +192,39 @@ class Checkout extends Component
         }
 
         $this->dispatch('passengers-saved');
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function methods(): array
+    {
+        return collect(PaymentMethod::online())->mapWithKeys(fn (PaymentMethod $m) => [$m->value => $m->getLabel()])->all();
+    }
+
+    /**
+     * Send the passenger to the payment gateway.
+     */
+    public function pay(PaymentService $payments): void
+    {
+        $method = PaymentMethod::tryFrom($this->method);
+
+        if ($method === null || ! $method->isOnline()) {
+            $this->addError('method', __('Choose how to pay.'));
+
+            return;
+        }
+
+        try {
+            $url = $payments->start($this->booking, $method);
+        } catch (BookingRefusedException $e) {
+            $this->addError('booking', $e->getMessage());
+            $this->booking->refresh();
+
+            return;
+        }
+
+        $this->redirect($url);
     }
 
     public function cancel(SeatInventoryService $inventory): void

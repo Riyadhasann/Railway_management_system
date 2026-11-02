@@ -29,6 +29,13 @@
         @endif
     </div>
 
+    @if (session('payment_status'))
+        @php [$variant, $text] = session('payment_status'); @endphp
+        <flux:callout :variant="$variant === 'warning' ? 'warning' : 'secondary'" icon="information-circle">
+            <flux:callout.text>{{ $text }}</flux:callout.text>
+        </flux:callout>
+    @endif
+
     @if ($statusMessage)
         <flux:callout :variant="$booking->status === \App\Enums\BookingStatus::Confirmed ? 'success' : 'warning'" icon="information-circle">
             <flux:callout.text>{{ $statusMessage }}</flux:callout.text>
@@ -115,12 +122,23 @@
         </section>
 
         @if ($this->hasPassengers())
-            <flux:callout icon="credit-card" data-test="payment-pending">
-                <flux:callout.heading>{{ __('Payment') }}</flux:callout.heading>
-                <flux:callout.text>
-                    {{ __('Online payment is not switched on yet. Your seats stay held until :time; after that they are released.', ['time' => $booking->hold_until?->format('H:i')]) }}
-                </flux:callout.text>
-            </flux:callout>
+            <section class="space-y-4 rounded-xl border border-zinc-200 p-4 dark:border-zinc-700" data-test="payment">
+                <div>
+                    <flux:heading size="lg">{{ __('Payment') }}</flux:heading>
+                    <flux:text class="mt-1">
+                        {{ __('Pay before :time to keep these seats. This is a test gateway: no real money moves.', ['time' => $booking->hold_until?->format('H:i')]) }}
+                    </flux:text>
+                </div>
+                <flux:radio.group wire:model="method" variant="cards" class="max-sm:flex-col">
+                    @foreach ($this->methods() as $value => $label)
+                        <flux:radio :value="$value" :label="$label" />
+                    @endforeach
+                </flux:radio.group>
+                @error('method') <flux:text class="text-red-600">{{ $message }}</flux:text> @enderror
+                <flux:button wire:click="pay" variant="primary" icon="credit-card" data-test="pay">
+                    {{ __('Pay :amount', ['amount' => Money::format($booking->total_poisha)]) }}
+                </flux:button>
+            </section>
         @endif
     @endif
 </div>
