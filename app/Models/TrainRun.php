@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 
 /**
@@ -72,6 +73,22 @@ class TrainRun extends Model
     public function stopTimes(): HasMany
     {
         return $this->hasMany(RunStopTime::class);
+    }
+
+    /**
+     * @return HasMany<CrewAssignment, $this>
+     */
+    public function crewAssignments(): HasMany
+    {
+        return $this->hasMany(CrewAssignment::class);
+    }
+
+    /**
+     * @return HasOne<LocoAssignment, $this>
+     */
+    public function locoAssignment(): HasOne
+    {
+        return $this->hasOne(LocoAssignment::class);
     }
 
     public function isCancelled(): bool
