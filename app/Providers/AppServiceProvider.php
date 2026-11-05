@@ -10,12 +10,14 @@ use App\Gateways\Nid\FormatNidVerifier;
 use App\Gateways\Payment\MockGateway;
 use App\Gateways\Sms\LogSmsSender;
 use App\Models\User;
+use App\Policies\ActivityPolicy;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Spatie\Activitylog\Models\Activity;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -49,6 +51,9 @@ class AppServiceProvider extends ServiceProvider
         // ("delete", "update"...) are not short-circuited, so record-level safety rules
         // such as "a station used on a route can't be deleted" still apply to admins.
         Gate::before(fn (User $user, string $ability): ?bool => str_contains($ability, '.') && $user->hasRole(Role::Admin->value) ? true : null);
+
+        // The activity model lives in the package, so its policy is not discovered by name.
+        Gate::policy(Activity::class, ActivityPolicy::class);
     }
 
     /**
