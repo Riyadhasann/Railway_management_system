@@ -461,13 +461,15 @@ Each phase ends with something that can be demonstrated. Don't start a phase unt
 
 **Goal:** the train-side and staff-side of the railway.
 
-- [ ] `TteScanner` page (html5-qrcode), `TicketService::validate()`, `TicketScan` records; test over the HTTPS tunnel on a real phone.
-- [ ] Passenger chart per run (printable), mark no-show, record `Fine`.
-- [ ] Station master actual-time entry → `delay_minutes` → shown on passenger bookings.
-- [ ] `Staff`, `Locomotive`, `Maintenance` resources; licence expiry and maintenance due fields.
-- [ ] `CrewService::assignCrew()` / `assignLoco()`: block expired licences and locos under repair; `ExpiryWarnings` job.
+**Status: 🟡 built (Nov 3, 2026); waiting for the real-phone scanner test.**
 
-**Exit:** the prototype "Operations" scenarios pass on a real phone.
+- [x] `TicketService::validate()` checks the signed QR against the run the TTE is working and records every scan in `TicketScan`: `valid` (first check of a paid ticket), `already_used` (with when and by whom), `cancelled`, `wrong_date` (same train, another day), `invalid` (forged, other train, unpaid). The booking row is locked so a ticket is accepted once. **Checking → Scan tickets** (Filament page, html5-qrcode from unpkg): pick today's or last night's run, scan with the back camera or paste a code, see passengers and seats, "X of Y bookings checked". *Still to do: test over the HTTPS tunnel on a real phone (browsers only allow the camera on HTTPS or localhost).*
+- [x] **Checking → Passenger chart**: ticket holders in coach/seat order with Checked / No-show, printable; `CheckingService` marks no-shows (`passengers.no_show_at/by`) and records cash `Fine`s (receipt number, reason, optional PNR on the same train).
+- [x] **Operations → Actual times** (station master): `TrainRunService::recordActualTime()` stores `RunStopTime` per stop (HH:MM; just after midnight counts as the next day; future, out-of-order and >2 h early times rejected). The run's `delay_minutes` is the delay at the furthest stop recorded; status moves to running, then arrived at the terminus. Passengers see "Running 25 min late" and the expected departure on My bookings and the booking page.
+- [x] `Staff`, `Locomotive`, `Maintenance` with **Crew and locos → Staff / Locomotives** (crew controller edits, manager views). Licence required for drivers and assistant drivers; expiry and maintenance due highlighted and filterable. `MaintenanceService`: "Send to workshop" marks a loco under repair, "Return to service" closes the visit and sets the next due date. `DemoStaffSeeder`: 30 crew and 8 locos, including an expired licence, a loco under repair and two locos due for maintenance.
+- [x] `CrewService::assignCrew()` / `assignLoco()` block expired licences (on the journey date), drivers without a licence, inactive staff and locos under repair or retired; one run per person and per loco per day (also unique indexes). `problems()` lists what a run still needs. **Crew and locos → Assignments** page; `crew:expiry-warnings` (daily 07:00) emails crew controllers and admins about licences expiring within 30 days and maintenance due within 7.
+
+**Exit:** the prototype "Operations" scenarios pass in `tests/Feature/Checking` and `tests/Feature/Operations` (also on MySQL); the real-phone scanner check is the last step.
 
 ### Phase 6 — Reports and hardening (module 9)
 
