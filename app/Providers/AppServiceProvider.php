@@ -12,9 +12,11 @@ use App\Gateways\Sms\LogSmsSender;
 use App\Models\User;
 use App\Policies\ActivityPolicy;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use Spatie\Activitylog\Models\Activity;
@@ -54,6 +56,14 @@ class AppServiceProvider extends ServiceProvider
 
         // The activity model lives in the package, so its policy is not discovered by name.
         Gate::policy(Activity::class, ActivityPolicy::class);
+
+        // N+1 guard: loading a relation row by row in a list fails the tests, and is only
+        // logged while running locally so a missed case never breaks a demo page.
+        Model::preventLazyLoading(! app()->isProduction());
+
+        if (! app()->runningUnitTests()) {
+            Model::handleLazyLoadingViolationUsing(fn (Model $model, string $relation) => Log::warning('N+1: lazy loading '.$model::class."::{$relation}"));
+        }
     }
 
     /**

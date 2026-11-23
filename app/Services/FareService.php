@@ -8,6 +8,7 @@ use App\Exceptions\FareNotFoundException;
 use App\Models\Concession;
 use App\Models\FareRule;
 use App\Models\RakeCoach;
+use App\Models\RouteStop;
 use App\Models\Train;
 use App\Models\TrainRun;
 use InvalidArgumentException;
@@ -26,14 +27,15 @@ class FareService
     public function quote(TrainRun $run, array $seats, int $fromSeq, int $toSeq): FareQuote
     {
         $km = $this->distanceKm($run->train, $fromSeq, $toSeq);
-        $classes = $run->train->rakeCoaches()->with('coachType')->get()
+        $classes = $run->train->loadMissing('rakeCoaches.coachType')->rakeCoaches
             ->mapWithKeys(fn (RakeCoach $c) => [$c->coach_no => $c->coachType->seat_class]);
 
         $fares = [];
+        $byClass = []; // one fare rule lookup per class, not per seat
         foreach ($seats as $seat) {
             $class = $classes[$seat['coach_no']]
                 ?? throw new InvalidArgumentException("Coach {$seat['coach_no']} is not part of train {$run->train->number}.");
-            $fares["{$seat['coach_no']}|{$seat['seat_id']}"] = $this->fareFor($class, $km);
+            $fares["{$seat['coach_no']}|{$seat['seat_id']}"] = $byClass[$class->value] ??= $this->fareFor($class, $km);
         }
 
         return new FareQuote($km, $fares);
@@ -98,7 +100,8 @@ class FareService
             throw new InvalidArgumentException('The journey must end after it starts.');
         }
 
-        $km = $train->trainRoute->stops()
+        $km = RouteStop::query()
+            ->where('train_route_id', $train->train_route_id)
             ->whereIn('sequence', [$fromSeq, $toSeq])
             ->pluck('distance_km', 'sequence');
 

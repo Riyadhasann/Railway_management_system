@@ -80,7 +80,7 @@ class CrewAssignments extends Page
         return TrainRun::query()
             ->whereDate('journey_date', $this->date)
             ->where('status', '!=', RunStatus::Cancelled->value)
-            ->with(['train', 'crewAssignments', 'locoAssignment.locomotive'])
+            ->with(['train', 'crewAssignments.staff', 'locoAssignment.locomotive'])
             ->get()
             ->sortBy(fn (TrainRun $r) => $r->train->number)
             ->values();

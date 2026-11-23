@@ -548,13 +548,16 @@ class PastBookingsSeeder extends Seeder
     private function passengers(): array
     {
         $domain = config('railway.demo_email_domain');
-        $users = [];
+
+        // The testers' own passenger account gets a share of the history too, so My bookings isn't empty.
+        $users = array_values(User::where('email', "passenger@{$domain}")->get()->all());
 
         for ($i = 1; $i <= self::PASSENGERS; $i++) {
             $user = User::firstOrCreate(
                 ['email' => "passenger{$i}@{$domain}"],
-                ['name' => fake()->name(), 'password' => Str::password(16), 'email_verified_at' => now()],
+                ['name' => fake()->name(), 'password' => Str::password(16)],
             );
+            $user->forceFill(['email_verified_at' => $user->email_verified_at ?? now()])->save();
             $user->syncRoles([Role::Passenger->value]);
             $users[] = $user;
         }

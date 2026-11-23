@@ -127,8 +127,13 @@ class CrewService
      */
     public function problems(TrainRun $run): array
     {
-        $crew = $run->crewAssignments()->with('staff')->get();
-        $loco = $run->locoAssignment()->with('locomotive')->first();
+        // A list of runs passes them with crew and loco already loaded; otherwise read them fresh.
+        $crew = $run->relationLoaded('crewAssignments')
+            ? $run->crewAssignments->loadMissing('staff')
+            : $run->crewAssignments()->with('staff')->get();
+        $loco = $run->relationLoaded('locoAssignment')
+            ? $run->locoAssignment?->loadMissing('locomotive')
+            : $run->locoAssignment()->with('locomotive')->first();
         $problems = [];
 
         if (! $crew->contains(fn (CrewAssignment $a) => $a->duty === StaffDesignation::Driver)) {

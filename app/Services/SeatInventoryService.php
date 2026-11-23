@@ -47,8 +47,7 @@ class SeatInventoryService
      */
     public function fullJourney(TrainRun $run): array
     {
-        $sequences = $run->train->scheduleStops()->with('routeStop')->get()
-            ->map(fn ($stop) => $stop->routeStop->sequence);
+        $sequences = $this->stops($run)->map(fn (ScheduleStop $stop) => $stop->routeStop->sequence);
 
         if ($sequences->count() < 2) {
             throw new InvalidArgumentException("Train {$run->train->number} has no timetable.");
@@ -70,14 +69,14 @@ class SeatInventoryService
 
         // Online buyers can't take counter-quota seats: show the free ones as blocked.
         if ($channel === Channel::Online) {
-            foreach ($run->train->rakeCoaches()->with('coachType.seats')->get() as $coach) {
+            foreach ($this->coaches($run) as $coach) {
                 foreach ($this->counterQuotaSeatIds($coach) as $seatId) {
                     $states["{$coach->coach_no}|{$seatId}"] ??= SeatState::Blocked;
                 }
             }
         }
 
-        return array_values($run->train->rakeCoaches()->with('coachType.seats')->get()
+        return array_values($this->coaches($run)
             ->map(fn (RakeCoach $coach) => new CoachMap(
                 coachNo: $coach->coach_no,
                 coachTypeName: $coach->coachType->name,
@@ -297,8 +296,7 @@ class SeatInventoryService
      */
     public function boardingDeparture(TrainRun $run, int $fromSeq): ?CarbonImmutable
     {
-        $stop = $run->train->scheduleStops()->with('routeStop')->get()
-            ->first(fn (ScheduleStop $s) => $s->routeStop->sequence === $fromSeq);
+        $stop = $this->stops($run)->first(fn (ScheduleStop $s) => $s->routeStop->sequence === $fromSeq);
 
         return $stop?->departureOn($run->journey_date);
     }
@@ -369,6 +367,26 @@ class SeatInventoryService
                 ->where('status', SeatBookingStatus::Blocked->value)
                 ->update(['status' => SeatBookingStatus::Cancelled->value]);
         });
+    }
+
+    /**
+     * The run's rake with every seat, loaded once per TrainRun instance (a refresh() reloads it).
+     *
+     * @return Collection<int, RakeCoach>
+     */
+    private function coaches(TrainRun $run): Collection
+    {
+        return $run->train->loadMissing('rakeCoaches.coachType.seats')->rakeCoaches;
+    }
+
+    /**
+     * The timetable in route order, loaded once per TrainRun instance.
+     *
+     * @return Collection<int, ScheduleStop>
+     */
+    private function stops(TrainRun $run): Collection
+    {
+        return $run->train->loadMissing('scheduleStops.routeStop')->scheduleStops;
     }
 
     /**
@@ -466,8 +484,7 @@ class SeatInventoryService
             throw new BookingRefusedException('This train run has been cancelled.');
         }
 
-        $calls = $run->train->scheduleStops()->with('routeStop')->get()
-            ->map(fn (ScheduleStop $s) => $s->routeStop->sequence);
+        $calls = $this->stops($run)->map(fn (ScheduleStop $s) => $s->routeStop->sequence);
 
         if (! $calls->contains($fromSeq) || ! $calls->contains($toSeq)) {
             throw new BookingRefusedException('The train does not stop at both of those stations.');
@@ -485,7 +502,7 @@ class SeatInventoryService
      */
     private function assertSeatsSellable(TrainRun $run, array $seats, Channel $channel): void
     {
-        $coaches = $run->train->rakeCoaches()->with('coachType.seats')->get()->keyBy('coach_no');
+        $coaches = $this->coaches($run)->keyBy('coach_no');
 
         foreach ($seats as $s) {
             /** @var RakeCoach|null $coach */

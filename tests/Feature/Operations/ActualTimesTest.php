@@ -22,7 +22,7 @@ beforeEach(function () {
         ->withTimetable('08:00')
         ->create();
     $this->run = TrainRun::factory()->for($this->train)->create(['journey_date' => '2026-11-05']);
-    $this->stops = $this->train->scheduleStops()->with('routeStop')->get()->sortBy(fn ($s) => $s->routeStop->sequence)->values();
+    $this->stops = $this->train->scheduleStops()->with('routeStop.station')->get()->sortBy(fn ($s) => $s->routeStop->sequence)->values();
     $this->master = tap(User::factory()->create())->assignRole(Role::StationMaster->value);
     $this->runs = app(TrainRunService::class);
 });

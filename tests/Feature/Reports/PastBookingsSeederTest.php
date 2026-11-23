@@ -3,6 +3,7 @@
 use App\Enums\BookingStatus;
 use App\Enums\Channel;
 use App\Enums\PaymentStatus;
+use App\Enums\Role;
 use App\Enums\RunStatus;
 use App\Enums\SeatBookingStatus;
 use App\Exceptions\SeatUnavailableException;
@@ -14,6 +15,7 @@ use App\Models\Refund;
 use App\Models\Seat;
 use App\Models\SeatBooking;
 use App\Models\TrainRun;
+use App\Models\User;
 use App\Services\ReportService;
 use App\Services\SeatInventoryService;
 use Carbon\CarbonImmutable;
@@ -101,6 +103,14 @@ it('follows the seat rules: no double sales, quota seats only at the counter, wo
         ->whereHas('trainRun', fn ($q) => $q->whereDate('journey_date', '>', '2026-11-05'))->firstOrFail();
     expect(fn () => $inventory->hold($sold->trainRun, [['coach_no' => $sold->coach_no, 'seat_id' => $sold->seat_id]], $sold->from_seq, $sold->to_seq, Channel::Counter))
         ->toThrow(SeatUnavailableException::class);
+});
+
+it('books online for verified passengers, including the demo passenger account', function () {
+    $buyers = User::whereIn('id', Booking::where('channel', Channel::Online)->select('user_id'))->get();
+
+    expect($buyers)->not->toBeEmpty()
+        ->and($buyers->every(fn (User $u) => $u->hasVerifiedEmail() && $u->hasRole(Role::Passenger->value)))->toBeTrue()
+        ->and($buyers->pluck('email'))->toContain('passenger@railway-erp.test');
 });
 
 it('is skipped when history already exists', function () {
