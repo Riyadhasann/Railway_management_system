@@ -342,16 +342,18 @@ tests/
 | Environment | Where | Purpose | Notes |
 | --- | --- | --- | --- |
 | Local | Laravel Herd (PHP 8.4) + portable MySQL 8.4 on `127.0.0.1:3307` | Development | Mail written to the log, mock gateway. Port 3307 avoids clashing with XAMPP on 3306 |
-| Demo | Dev PC + Cloudflare Tunnel / ngrok | Testers and pilot | HTTPS required for the TTE camera |
+| Demo | Dev PC + Cloudflare Tunnel / ngrok | Testers and pilot | HTTPS required for the TTE camera; set `TRUSTED_PROXIES=127.0.0.1,::1` while sharing. See [tester-guide.md](tester-guide.md) |
 | Staging | Small VPS | Pre-production, real gateway sandboxes | Same config as prod, fake data |
 | Production | Cloud or government data centre | Live service | Backups, monitoring, DR |
 
-Important `.env` keys: `APP_TIMEZONE=Asia/Dhaka`, `DB_CONNECTION=mysql`, `QUEUE_CONNECTION=database`, `PAYMENT_DRIVER=mock`, `SMS_DRIVER=log`, `NID_DRIVER=format`, `MAIL_MAILER=log` (or `smtp` with Mailpit / Gmail), `DB_PORT=3307`.
+Important `.env` keys: `APP_TIMEZONE=Asia/Dhaka`, `DB_CONNECTION=mysql`, `QUEUE_CONNECTION=database`, `PAYMENT_DRIVER=mock`, `SMS_DRIVER=log`, `NID_DRIVER=format`, `MAIL_MAILER=log` (or `smtp` with Mailpit / Gmail), `DB_PORT=3307`, `DEMO_PASSWORD` (one password for all demo accounts), `TRUSTED_PROXIES` (empty unless sharing through a tunnel).
 
 ### 2.12 Conventions
 
 - **Money** is stored as integer **poisha** (`total_poisha`, `amount_poisha`) and never as float. Format to ৳ only in views.
 - **Time:** store `datetime` in Asia/Dhaka (single-country system). Schedule times use `time` + `day_offset` for overnight trains.
+- **Date filters:** don't use `whereDate()` on large tables (MySQL can't use the index through `DATE()`). Compare with `App\Support\Day::start()` / `Day::after()`.
+- **No N+1:** lazy loading fails in tests; eager-load relations for lists. New pages go in `SmokeTest`.
 - **Statuses** are enums, and transitions happen only inside services.
 - **Thin UI:** a Livewire component or Filament action calls one service method.
 - **Code style and tests:** run Laravel Pint and Pest on every push (GitHub Actions free tier). Every service method has a test.
@@ -475,14 +477,16 @@ Each phase ends with something that can be demonstrated. Don't start a phase unt
 
 **Goal:** management visibility and a demo-ready build.
 
-- [ ] `ReportService` queries; Filament widgets: daily revenue, revenue by train/class/channel, occupancy %, refunds, on-time %.
-- [ ] Excel/CSV exports (maatwebsite/excel).
-- [ ] Audit log page.
-- [ ] `PastBookingsSeeder` (30 days of history); "Reset demo data" admin action.
-- [ ] Bug-fix pass, N+1 query check (Laravel Debugbar), basic indexes from §2.4.
-- [ ] Tester guide (one page per role) and share the demo over the HTTPS tunnel.
+**Status: 🟡 built (Nov 23, 2026); waiting for the walkthrough with all roles.**
 
-**Exit:** a full walkthrough with all roles; every checkbox in the prototype plan's test scenarios is ticked.
+- [x] `ReportService` (cash basis: payments by `paid_at` minus processed refunds by `processed_at`): daily revenue, revenue by train and by channel, sales by class, occupancy per run (distinct seats with a booked segment ÷ rake seats), refunds, on-time % (arrived ≤ 5 min late), tickets sold. Dashboard widgets: revenue stats, revenue, channel, class, train and occupancy charts with 7/30/90-day filters (`reports.view`).
+- [x] **Reports → Reports and export**: every report for a date range (up to 366 days), CSV per report (UTF-8 with BOM for Excel) and one Excel workbook with a sheet per report. *openspout instead of maatwebsite/excel: lighter, and streams the file.*
+- [x] **Admin → Audit log** (`audit.view`, read-only): who, when, which record, before → after for every logged change; filters by record type, event, person and date; password and 2FA fields never shown. *Money shows as raw poisha.*
+- [x] `PastBookingsSeeder`: 30 days of counter and online sales, cancellations with rule-based refunds, and actual running times, plus advance sales for the next 2 days (about 11,000 bookings). Written in bulk for speed (no audit-log entries); fares from `FareService`, seat, quota and women-only rules respected. **Admin → Demo data** and `php artisan demo:reset` rebuild everything and keep the demo account passwords (blocked in production).
+- [x] Bug-fix and performance pass. Lazy loading is blocked in tests and logged locally (`Model::preventLazyLoading`), and `SmokeTest` opens every page with demo data under an 80-query budget. The booking engine loads a rake and timetable once per request. Date filters no longer use `whereDate()`, which wraps the column in `DATE()` and stops MySQL using the index; they compare with day boundaries from `App\Support\Day` instead. Indexes added on `payments.created_at` and `activity_log.created_at`. `composer audit` is clean (Laravel 13.43, Symfony 8.1.11). *Laravel Debugbar not needed: the lazy-loading guard and query budget catch N+1s in CI.*
+- [x] Tester guide ([tester-guide.md](tester-guide.md)): one page per role with steps and the prototype test scenarios, and how the host shares the demo. `TRUSTED_PROXIES=127.0.0.1,::1` makes links `https://` behind a tunnel. *Sharing over a real tunnel is not yet tried end to end.*
+
+**Exit:** a full walkthrough with all roles; every checkbox in the prototype plan's test scenarios is ticked. All scenarios have automated tests; the manual walkthrough (with the Phase 5 real-phone scanner check) is still to do.
 
 ### Phase 7 — Pilot
 
