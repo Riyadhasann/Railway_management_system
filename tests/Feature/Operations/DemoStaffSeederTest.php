@@ -8,8 +8,10 @@ use Database\Seeders\DemoNetworkSeeder;
 use Database\Seeders\DemoStaffSeeder;
 use Database\Seeders\DemoUsersSeeder;
 use Database\Seeders\RolesAndPermissionsSeeder;
+use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
+    Storage::fake('local'); // DemoUsersSeeder writes demo-credentials.txt; keep the real one
     $this->seed([RolesAndPermissionsSeeder::class, DemoUsersSeeder::class, DemoNetworkSeeder::class, DemoStaffSeeder::class]);
 });
 
