@@ -9,6 +9,7 @@ use App\Models\ScheduleStop;
 use App\Models\Train;
 use App\Models\TrainRun;
 use App\Models\User;
+use App\Support\Day;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use DomainException;
@@ -38,8 +39,8 @@ class TrainRunService
         Train::query()->where('is_active', true)->each(function (Train $train) use ($from, $until, $days, &$created) {
             // Compare by calendar date: drivers store DATE values differently (SQLite keeps a time part).
             $existing = $train->runs()
-                ->whereDate('journey_date', '>=', $from->toDateString())
-                ->whereDate('journey_date', '<=', $until->toDateString())
+                ->where('journey_date', '>=', Day::start($from))
+                ->where('journey_date', '<', Day::after($until))
                 ->pluck('journey_date')
                 ->map(fn (CarbonInterface $d) => $d->toDateString())
                 ->flip();

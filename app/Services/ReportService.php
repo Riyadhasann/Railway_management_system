@@ -12,6 +12,7 @@ use App\Enums\SeatBookingStatus;
 use App\Enums\SeatClass;
 use App\Models\Train;
 use App\Models\TrainRun;
+use App\Support\Day;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
@@ -41,16 +42,16 @@ class ReportService
         $payments = DB::table('payments')
             ->whereIn('status', PaymentStatus::captured())
             ->whereNotNull('paid_at')
-            ->whereDate('paid_at', '>=', $from->toDateString())
-            ->whereDate('paid_at', '<=', $to->toDateString())
+            ->where('paid_at', '>=', Day::start($from))
+            ->where('paid_at', '<', Day::after($to))
             ->selectRaw('DATE(paid_at) as day, SUM(amount_poisha) as total')
             ->groupBy('day')
             ->pluck('total', 'day');
 
         $refunds = DB::table('refunds')
             ->where('status', RefundStatus::Processed->value)
-            ->whereDate('processed_at', '>=', $from->toDateString())
-            ->whereDate('processed_at', '<=', $to->toDateString())
+            ->where('processed_at', '>=', Day::start($from))
+            ->where('processed_at', '<', Day::after($to))
             ->selectRaw('DATE(processed_at) as day, SUM(amount_poisha) as total')
             ->groupBy('day')
             ->pluck('total', 'day');
@@ -84,8 +85,8 @@ class ReportService
             ->join('train_runs', 'train_runs.id', '=', 'bookings.train_run_id')
             ->whereIn('payments.status', PaymentStatus::captured())
             ->whereNotNull('payments.paid_at')
-            ->whereDate('payments.paid_at', '>=', $from->toDateString())
-            ->whereDate('payments.paid_at', '<=', $to->toDateString())
+            ->where('payments.paid_at', '>=', Day::start($from))
+            ->where('payments.paid_at', '<', Day::after($to))
             ->selectRaw("{$key} as k, SUM(payments.amount_poisha) as total")
             ->groupBy('k')
             ->pluck('total', 'k');
@@ -94,8 +95,8 @@ class ReportService
             ->join('bookings', 'bookings.id', '=', 'refunds.booking_id')
             ->join('train_runs', 'train_runs.id', '=', 'bookings.train_run_id')
             ->where('refunds.status', RefundStatus::Processed->value)
-            ->whereDate('refunds.processed_at', '>=', $from->toDateString())
-            ->whereDate('refunds.processed_at', '<=', $to->toDateString())
+            ->where('refunds.processed_at', '>=', Day::start($from))
+            ->where('refunds.processed_at', '<', Day::after($to))
             ->selectRaw("{$key} as k, SUM(refunds.amount_poisha) as total")
             ->groupBy('k')
             ->pluck('total', 'k');
@@ -130,8 +131,8 @@ class ReportService
         $paidBookings = DB::table('payments')
             ->whereIn('status', PaymentStatus::captured())
             ->whereNotNull('paid_at')
-            ->whereDate('paid_at', '>=', $from->toDateString())
-            ->whereDate('paid_at', '<=', $to->toDateString())
+            ->where('paid_at', '>=', Day::start($from))
+            ->where('paid_at', '<', Day::after($to))
             ->select('booking_id');
 
         $rows = DB::table('passengers')
@@ -180,8 +181,8 @@ class ReportService
         [$from, $to] = $this->range($from, $to);
 
         $runs = TrainRun::query()
-            ->whereDate('journey_date', '>=', $from->toDateString())
-            ->whereDate('journey_date', '<=', $to->toDateString())
+            ->where('journey_date', '>=', Day::start($from))
+            ->where('journey_date', '<', Day::after($to))
             ->where('status', '!=', RunStatus::Cancelled->value)
             ->with('train')
             ->get()
@@ -212,8 +213,8 @@ class ReportService
 
         $rows = DB::table('refunds')
             ->where('status', RefundStatus::Processed->value)
-            ->whereDate('processed_at', '>=', $from->toDateString())
-            ->whereDate('processed_at', '<=', $to->toDateString())
+            ->where('processed_at', '>=', Day::start($from))
+            ->where('processed_at', '<', Day::after($to))
             ->selectRaw('reason, COUNT(*) as n, SUM(amount_poisha) as amount')
             ->groupBy('reason')
             ->get()
@@ -243,8 +244,8 @@ class ReportService
 
         $delays = TrainRun::query()
             ->where('status', RunStatus::Arrived->value)
-            ->whereDate('journey_date', '>=', $from->toDateString())
-            ->whereDate('journey_date', '<=', $to->toDateString())
+            ->where('journey_date', '>=', Day::start($from))
+            ->where('journey_date', '<', Day::after($to))
             ->pluck('delay_minutes');
 
         $onTime = $delays->filter(fn ($d) => (int) $d <= self::ON_TIME_MINUTES)->count();
@@ -269,8 +270,8 @@ class ReportService
         $bookings = DB::table('bookings')
             ->whereNotNull('confirmed_at')
             ->whereIn('status', [BookingStatus::Confirmed->value, BookingStatus::Completed->value, BookingStatus::Cancelled->value])
-            ->whereDate('confirmed_at', '>=', $from->toDateString())
-            ->whereDate('confirmed_at', '<=', $to->toDateString());
+            ->where('confirmed_at', '>=', Day::start($from))
+            ->where('confirmed_at', '<', Day::after($to));
 
         return [
             'bookings' => (clone $bookings)->count(),

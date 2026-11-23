@@ -11,6 +11,7 @@ use App\Models\Locomotive;
 use App\Models\Staff;
 use App\Models\TrainRun;
 use App\Models\User;
+use App\Support\Day;
 use DomainException;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
@@ -50,7 +51,8 @@ class CrewService
 
             $existing = CrewAssignment::query()
                 ->where('staff_id', $staff->id)
-                ->whereDate('journey_date', $run->journey_date->toDateString())
+                ->where('journey_date', '>=', Day::start($run->journey_date))
+                ->where('journey_date', '<', Day::after($run->journey_date))
                 ->with('trainRun.train')
                 ->first();
 
@@ -88,7 +90,8 @@ class CrewService
 
             $elsewhere = LocoAssignment::query()
                 ->where('locomotive_id', $loco->id)
-                ->whereDate('journey_date', $run->journey_date->toDateString())
+                ->where('journey_date', '>=', Day::start($run->journey_date))
+                ->where('journey_date', '<', Day::after($run->journey_date))
                 ->where('train_run_id', '!=', $run->id)
                 ->with('trainRun.train')
                 ->first();
@@ -172,13 +175,13 @@ class CrewService
             ->whereIn('designation', [StaffDesignation::Driver->value, StaffDesignation::AssistantDriver->value])
             ->where(fn ($q) => $q
                 ->whereNull('licence_expires_on')
-                ->orWhereDate('licence_expires_on', '<=', now()->addDays($licenceDays)->toDateString()))
+                ->orWhere('licence_expires_on', '<', Day::after(now()->addDays($licenceDays))))
             ->orderBy('licence_expires_on')
             ->get();
 
         $locos = Locomotive::query()
             ->where('status', '!=', LocoStatus::Retired->value)
-            ->whereDate('next_maintenance_due', '<=', now()->addDays($maintenanceDays)->toDateString())
+            ->where('next_maintenance_due', '<', Day::after(now()->addDays($maintenanceDays)))
             ->orderBy('next_maintenance_due')
             ->get();
 

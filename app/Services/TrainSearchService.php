@@ -8,6 +8,7 @@ use App\Models\ScheduleStop;
 use App\Models\Station;
 use App\Models\Train;
 use App\Models\TrainRun;
+use App\Support\Day;
 use Carbon\CarbonImmutable;
 use LogicException;
 
@@ -52,7 +53,8 @@ class TrainSearchService
             $journeyDate = $date->startOfDay()->subDays($board->day_offset);
             $run = TrainRun::query()
                 ->where('train_id', $train->id)
-                ->whereDate('journey_date', $journeyDate->toDateString())
+                ->where('journey_date', '>=', Day::start($journeyDate))
+                ->where('journey_date', '<', Day::after($journeyDate))
                 ->first();
 
             if ($run === null) {
