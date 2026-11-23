@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Policies\ActivityPolicy;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -48,6 +49,12 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+
+        // Behind a tunnel the request arrives from 127.0.0.1 over http; trusting it (when configured)
+        // makes Laravel use the visitor's https:// address for links, assets and signed URLs.
+        if (config('railway.trusted_proxies') !== []) {
+            TrustProxies::at(config('railway.trusted_proxies'));
+        }
 
         // Admins pass every permission-name check (e.g. "network.manage"). Policy abilities
         // ("delete", "update"...) are not short-circuited, so record-level safety rules
