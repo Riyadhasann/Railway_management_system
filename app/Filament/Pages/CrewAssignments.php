@@ -12,6 +12,7 @@ use App\Models\Staff;
 use App\Models\TrainRun;
 use App\Models\User;
 use App\Services\CrewService;
+use App\Support\Day;
 use BackedEnum;
 use Carbon\CarbonImmutable;
 use DomainException;
@@ -78,7 +79,8 @@ class CrewAssignments extends Page
     public function runs(): Collection
     {
         return TrainRun::query()
-            ->whereDate('journey_date', $this->date)
+            ->where('journey_date', '>=', Day::start($this->date))
+            ->where('journey_date', '<', Day::after($this->date))
             ->where('status', '!=', RunStatus::Cancelled->value)
             ->with(['train', 'crewAssignments.staff', 'locoAssignment.locomotive'])
             ->get()
@@ -119,7 +121,7 @@ class CrewAssignments extends Page
      */
     public function staffOptions(): array
     {
-        $busy = CrewAssignment::whereDate('journey_date', $this->date)->pluck('staff_id')->all();
+        $busy = CrewAssignment::where('journey_date', '>=', Day::start($this->date))->where('journey_date', '<', Day::after($this->date))->pluck('staff_id')->all();
         $options = [];
 
         foreach (Staff::query()->where('is_active', true)->whereNotIn('id', $busy)->orderBy('name')->get() as $staff) {

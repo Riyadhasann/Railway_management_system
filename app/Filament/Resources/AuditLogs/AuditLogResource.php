@@ -4,6 +4,7 @@ namespace App\Filament\Resources\AuditLogs;
 
 use App\Filament\Resources\AuditLogs\Pages\ListAuditLogs;
 use App\Models\User;
+use App\Support\Day;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
@@ -82,8 +83,8 @@ class AuditLogResource extends Resource
                         DatePicker::make('until'),
                     ])
                     ->query(fn (Builder $query, array $data) => $query
-                        ->when($data['from'] ?? null, fn (Builder $q, $d) => $q->whereDate('created_at', '>=', $d))
-                        ->when($data['until'] ?? null, fn (Builder $q, $d) => $q->whereDate('created_at', '<=', $d))),
+                        ->when($data['from'] ?? null, fn (Builder $q, $d) => $q->where('created_at', '>=', Day::start($d)))
+                        ->when($data['until'] ?? null, fn (Builder $q, $d) => $q->where('created_at', '<', Day::after($d)))),
             ])
             ->recordActions([
                 Action::make('details')

@@ -20,6 +20,7 @@ use App\Models\User;
 use App\Services\BookingService;
 use App\Services\FareService;
 use App\Services\SeatInventoryService;
+use App\Support\Day;
 use App\Support\Money;
 use BackedEnum;
 use Filament\Notifications\Notification;
@@ -92,7 +93,8 @@ class CounterBooking extends Page
     public function runs(): Collection
     {
         return TrainRun::query()
-            ->whereDate('journey_date', $this->date)
+            ->where('journey_date', '>=', Day::start($this->date))
+            ->where('journey_date', '<', Day::after($this->date))
             ->where('status', RunStatus::Scheduled->value)
             ->with('train')
             ->get()

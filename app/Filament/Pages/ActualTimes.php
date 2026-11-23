@@ -9,6 +9,7 @@ use App\Models\ScheduleStop;
 use App\Models\TrainRun;
 use App\Models\User;
 use App\Services\TrainRunService;
+use App\Support\Day;
 use BackedEnum;
 use DomainException;
 use Filament\Notifications\Notification;
@@ -61,8 +62,8 @@ class ActualTimes extends Page
     public function runs(): Collection
     {
         return TrainRun::query()
-            ->whereDate('journey_date', '>=', now()->subDay()->toDateString())
-            ->whereDate('journey_date', '<=', now()->toDateString())
+            ->where('journey_date', '>=', Day::start(now()->subDay()))
+            ->where('journey_date', '<', Day::after(now()))
             ->where('status', '!=', RunStatus::Cancelled->value)
             ->with('train')
             ->get()

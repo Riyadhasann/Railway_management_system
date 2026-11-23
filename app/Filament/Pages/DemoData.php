@@ -7,6 +7,7 @@ use App\Models\Booking;
 use App\Models\TrainRun;
 use App\Models\User;
 use App\Services\DemoDataService;
+use App\Support\Day;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
@@ -50,7 +51,7 @@ class DemoData extends Page
             'Users' => User::count(),
             'Train runs' => TrainRun::count(),
             'Bookings' => Booking::count(),
-            'Bookings on past runs' => Booking::whereHas('trainRun', fn ($q) => $q->whereDate('journey_date', '<', today()))->count(),
+            'Bookings on past runs' => Booking::whereHas('trainRun', fn ($q) => $q->where('journey_date', '<', Day::start(today())))->count(),
         ];
     }
 

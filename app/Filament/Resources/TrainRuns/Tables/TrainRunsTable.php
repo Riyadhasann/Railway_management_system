@@ -6,6 +6,7 @@ use App\Enums\RunStatus;
 use App\Filament\Resources\TrainRuns\TrainRunResource;
 use App\Models\TrainRun;
 use App\Services\TrainRunService;
+use App\Support\Day;
 use DomainException;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
@@ -49,8 +50,8 @@ class TrainRunsTable
                         DatePicker::make('until'),
                     ])
                     ->query(fn (Builder $query, array $data) => $query
-                        ->when($data['from'] ?? null, fn (Builder $q, $d) => $q->whereDate('journey_date', '>=', $d))
-                        ->when($data['until'] ?? null, fn (Builder $q, $d) => $q->whereDate('journey_date', '<=', $d))),
+                        ->when($data['from'] ?? null, fn (Builder $q, $d) => $q->where('journey_date', '>=', Day::start($d)))
+                        ->when($data['until'] ?? null, fn (Builder $q, $d) => $q->where('journey_date', '<', Day::after($d)))),
                 SelectFilter::make('status')->options(RunStatus::class),
                 SelectFilter::make('train_id')->label('Train')->relationship('train', 'name'),
             ])

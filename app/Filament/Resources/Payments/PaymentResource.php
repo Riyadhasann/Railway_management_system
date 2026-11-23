@@ -6,6 +6,7 @@ use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Filament\Resources\Payments\Pages\ListPayments;
 use App\Models\Payment;
+use App\Support\Day;
 use App\Support\Money;
 use BackedEnum;
 use Filament\Forms\Components\DatePicker;
@@ -63,8 +64,8 @@ class PaymentResource extends Resource
                         DatePicker::make('until')->label('Started until'),
                     ])
                     ->query(fn (Builder $query, array $data) => $query
-                        ->when($data['from'] ?? null, fn (Builder $q, $d) => $q->whereDate('created_at', '>=', $d))
-                        ->when($data['until'] ?? null, fn (Builder $q, $d) => $q->whereDate('created_at', '<=', $d))),
+                        ->when($data['from'] ?? null, fn (Builder $q, $d) => $q->where('created_at', '>=', Day::start($d)))
+                        ->when($data['until'] ?? null, fn (Builder $q, $d) => $q->where('created_at', '<', Day::after($d)))),
             ]);
     }
 

@@ -13,6 +13,7 @@ use App\Models\TicketScan;
 use App\Models\TrainRun;
 use App\Models\User;
 use App\Services\TicketService;
+use App\Support\Day;
 use BackedEnum;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
@@ -70,8 +71,8 @@ class TicketScanner extends Page
     public function runs(): Collection
     {
         return TrainRun::query()
-            ->whereDate('journey_date', '>=', now()->subDay()->toDateString())
-            ->whereDate('journey_date', '<=', now()->toDateString())
+            ->where('journey_date', '>=', Day::start(now()->subDay()))
+            ->where('journey_date', '<', Day::after(now()))
             ->whereIn('status', [RunStatus::Scheduled->value, RunStatus::Running->value])
             ->with('train')
             ->orderBy('journey_date')

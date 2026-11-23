@@ -6,6 +6,7 @@ use App\Enums\StaffDesignation;
 use App\Filament\Resources\Staff\Pages\ManageStaff;
 use App\Models\Staff;
 use App\Models\User;
+use App\Support\Day;
 use BackedEnum;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -108,7 +109,7 @@ class StaffResource extends Resource
                 SelectFilter::make('designation')->options(StaffDesignation::class),
                 Filter::make('licence_expiring')
                     ->label('Licence expired or expiring in '.self::EXPIRY_WARNING_DAYS.' days')
-                    ->query(fn (Builder $query) => $query->whereDate('licence_expires_on', '<=', now()->addDays(self::EXPIRY_WARNING_DAYS)->toDateString())),
+                    ->query(fn (Builder $query) => $query->where('licence_expires_on', '<', Day::after(now()->addDays(self::EXPIRY_WARNING_DAYS)))),
                 TernaryFilter::make('is_active')->label('Active'),
             ])
             ->recordActions([

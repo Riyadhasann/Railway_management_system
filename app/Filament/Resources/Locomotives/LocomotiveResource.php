@@ -7,6 +7,7 @@ use App\Enums\MaintenanceType;
 use App\Filament\Resources\Locomotives\Pages\ManageLocomotives;
 use App\Models\Locomotive;
 use App\Services\MaintenanceService;
+use App\Support\Day;
 use BackedEnum;
 use Carbon\CarbonImmutable;
 use DomainException;
@@ -94,7 +95,7 @@ class LocomotiveResource extends Resource
                 SelectFilter::make('status')->options(LocoStatus::class),
                 Filter::make('due_soon')
                     ->label('Maintenance due in '.self::DUE_WARNING_DAYS.' days or overdue')
-                    ->query(fn (Builder $query) => $query->whereDate('next_maintenance_due', '<=', now()->addDays(self::DUE_WARNING_DAYS)->toDateString())),
+                    ->query(fn (Builder $query) => $query->where('next_maintenance_due', '<', Day::after(now()->addDays(self::DUE_WARNING_DAYS)))),
             ])
             ->recordActions([
                 Action::make('workshop')

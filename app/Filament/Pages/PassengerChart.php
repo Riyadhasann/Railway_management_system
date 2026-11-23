@@ -12,6 +12,7 @@ use App\Models\ScheduleStop;
 use App\Models\TrainRun;
 use App\Models\User;
 use App\Services\CheckingService;
+use App\Support\Day;
 use App\Support\Money;
 use BackedEnum;
 use Filament\Notifications\Notification;
@@ -70,8 +71,8 @@ class PassengerChart extends Page
     public function runs(): Collection
     {
         return TrainRun::query()
-            ->whereDate('journey_date', '>=', now()->subDay()->toDateString())
-            ->whereDate('journey_date', '<=', now()->addDay()->toDateString())
+            ->where('journey_date', '>=', Day::start(now()->subDay()))
+            ->where('journey_date', '<', Day::after(now()->addDay()))
             ->where('status', '!=', RunStatus::Cancelled->value)
             ->with('train')
             ->get()
